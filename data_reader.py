@@ -104,7 +104,7 @@ class CommentDataset:
         with open(filepath) as f:
             json_data = json.load(f, encoding='utf-8')
         self.data = json_data['data']
-        self.words = json_data['words']
+        self.words = [word.encode('utf-8') for word in json_data['words']]
         if len(self.words) != self.n_words:
             raise Exception('Data error.')
 
