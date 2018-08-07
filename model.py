@@ -26,11 +26,15 @@ def choose_result_by_prob(predict):
 
 
 class CommentModel:
-    def __init__(self, n_words, n_embeding=50, seq_length=30):
+    def __init__(self, n_words, n_embeding=50, seq_length=30, save_dir='data/model.h5'):
         self.n_words = n_words
         self.final_words_dim = self.n_words + 2
         self.n_embeding = n_embeding
         self.seq_length = seq_length
+        self.save_dir = save_dir
+        dir = os.path.dirname(os.path.abspath(save_dir))
+        if not os.path.isdir(dir):
+            os.makedirs(dir)
         self._build_model()
 
     def _build_model(self):
@@ -44,12 +48,12 @@ class CommentModel:
 
     def train(self, X, Y, **kwargs):
         self.model.fit(X, Y, callbacks=[
-            ModelCheckpoint('data/model.h5'),
+            ModelCheckpoint(self.save_dir),
             TensorBoard(),
         ], **kwargs)
 
     def generate(self, words, starts=None):
-        self.model.load_weights('data/model.h5')
+        self.model.load_weights(self.save_dir)
         header = []
         if starts:
             items = [item.encode('utf-8') for item in jieba.cut(starts)]
@@ -75,6 +79,7 @@ class CommentModel:
 
 n_words = 2000
 maxlen = 30
+save_dir = 'data/model.h5'
 
 if __name__ == '__main__':
     dataset = CommentDataset(n_words=n_words, maxlen=maxlen)
@@ -83,7 +88,7 @@ if __name__ == '__main__':
     # offset = 1000
     # X, Y = X[:offset], Y[:offset]
 
-    model = CommentModel(n_words, seq_length=maxlen)
+    model = CommentModel(n_words, seq_length=maxlen, save_dir=save_dir)
     # model.train(X, Y, batch_size=32, epochs=100, verbose=1)
 
     for _ in range(100):
