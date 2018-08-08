@@ -26,7 +26,7 @@ def choose_result_by_prob(predict):
 
 
 class CommentModel:
-    def __init__(self, n_words, n_embeding=50, seq_length=30, save_dir='data/model.h5'):
+    def __init__(self, n_words, n_embeding=30, seq_length=30, save_dir='data/model.h5'):
         self.n_words = n_words
         self.final_words_dim = self.n_words + 2
         self.n_embeding = n_embeding
@@ -40,8 +40,9 @@ class CommentModel:
     def _build_model(self):
         self.model = Sequential()
         self.model.add(Embedding(self.final_words_dim, self.n_embeding, input_length=self.seq_length))
-        self.model.add(LSTM(256))
-        self.model.add(Dense(1024))
+        self.model.add(LSTM(1024, return_sequences=True))
+        self.model.add(LSTM(1024))
+        self.model.add(Dense(2048))
         self.model.add(Dense(self.final_words_dim, activation='softmax'))
         self.model.summary()
         self.model.compile('adam', 'categorical_crossentropy', ['acc'])
@@ -78,21 +79,25 @@ class CommentModel:
 
 
 n_words = 2000
-maxlen = 30
+maxlen = 20
 save_dir = 'data/model.h5'
+# train = True
+train = False
 
 if __name__ == '__main__':
-    dataset = CommentDataset(n_words=n_words, maxlen=maxlen)
+    dataset = CommentDataset(n_words=n_words, maxlen=maxlen, log=False)
     X, Y = dataset.load_data()
     words = dataset.words
     # offset = 1000
     # X, Y = X[:offset], Y[:offset]
 
     model = CommentModel(n_words, seq_length=maxlen, save_dir=save_dir)
-    # model.train(X, Y, batch_size=32, epochs=100, verbose=1)
 
-    for _ in range(100):
-        result = model.generate(words, '')
-        generated = dataset.to_words(result)
-        # print('\nGenerated:')
-        print(generated)
+    if train:
+        model.train(X, Y, batch_size=128, epochs=1000, verbose=1)
+    else:
+        for _ in range(100):
+            result = model.generate(words, '')
+            generated = dataset.to_words(result)
+            # print('\nGenerated:')
+            print(generated)

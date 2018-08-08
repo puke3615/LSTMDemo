@@ -6,7 +6,7 @@ import json
 import os
 
 PATH = './data'
-DIVIDER = '\r\n\r\n\r\n'
+DIVIDER = '\n\n\n'
 
 
 def get_all_files(path=PATH, file_selector=lambda filepath: True, dir_selector=lambda dirpath: True, result=None):
@@ -27,13 +27,13 @@ def get_all_files(path=PATH, file_selector=lambda filepath: True, dir_selector=l
 
 def read_file(path, result=None):
     result = set() if result is None else result
-    with open(path) as f:
+    with open(path, encoding='utf-8') as f:
         items = f.read().split(DIVIDER)
         for item in items:
             item = item.strip()
             if not item:
                 continue
-            properties = item.split('\r\n', 2)
+            properties = item.split('\n', 2)
             if not properties or len(properties) < 3:
                 continue
             menu, star, text = [property[7:] for property in properties]
@@ -52,9 +52,10 @@ class CommentDataset:
         files = get_all_files(self.path, file_selector=lambda filepath: filepath.endswith('.txt'))
         # print '\n'.join(files)
         comments = set()
-        for file in files:
+        for i, file in enumerate(files):
+            if i == 3:
+                break
             read_file(file, comments)
-            break
         comments = list(comments)
         print(len(comments))
         if self.log:
@@ -70,7 +71,7 @@ class CommentDataset:
         print('Found %d words, select %d words.' % (total_words, len(self.all_words)))
         self.word2index = {word.encode('utf-8'): index for index, (word, times) in enumerate(self.all_words)}
         self.index2word = {v: k for k, v in self.word2index.items()}
-        self.words = [word.encode('utf-8') for word, times in self.all_words]
+        self.words = [word for word, times in self.all_words]
         self.data = []
         # 忽略词对应的值(同占位符)
         occupy_index = self.n_words
@@ -96,7 +97,7 @@ class CommentDataset:
         if not os.path.isdir(dir_path):
             os.makedirs(dir_path)
         with open(filepath, 'w') as f:
-            json.dump(dump_data, f, ensure_ascii=False)
+            json.dump(dump_data, f, ensure_ascii=True)
 
     def load_data(self, reload=False, filepath='data/final_data.json'):
         if reload or not os.path.isfile(filepath):
@@ -118,8 +119,12 @@ class CommentDataset:
         from keras.utils import np_utils
         x = []
         y = []
-        for comment in self.data:
+        for index, comment in enumerate(self.data):
+            if self.log:
+                print('%d/%d' % (index + 1, len(self.data)))
             for i, word in enumerate(comment):
+                # if i % 3 != 0:
+                #     continue
                 input = comment[max(0, i - maxlen): i]
                 output = comment[i + 1] if i < len(comment) - 1 else v_end
                 x.append(input)
@@ -130,7 +135,7 @@ class CommentDataset:
         return X, Y
 
     def to_words(self, data):
-        mapping = lambda i: self.words[i] if i < len(self.words) else 'å'
+        mapping = lambda i: self.words[i].decode('utf-8') if i < len(self.words) else 'å'
         return ''.join(map(mapping, data))
 
     def preprocess(self, standard=True):
